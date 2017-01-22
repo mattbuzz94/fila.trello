@@ -9,7 +9,7 @@ import java.util.Map;
 abstract class GenericDAO<T> implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("JSFCrudPU");
+    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("FilaTrello");
     private EntityManager em;
 
     private Class<T> entityClass;
