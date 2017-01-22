@@ -12,7 +12,7 @@ public class ChamadoDAO extends GenericDAO<Chamado> {
         super(Chamado.class);
     }
 
-    public Chamado findTicketByNumber(long numeroChamado) {
+    public Chamado findTicketByNumber(int numeroChamado) {
         Map<String, Object> parameters = new HashMap<String, Object>();
         parameters.put("ticketNumber", numeroChamado);
 

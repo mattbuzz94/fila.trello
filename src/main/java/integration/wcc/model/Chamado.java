@@ -3,9 +3,9 @@ package integration.wcc.model;
 import javax.persistence.*;
 import java.io.Serializable;
 @Entity
-@Table(name = "WCC_ATIVIDADES")
+@Table(name = "WCC_ATIVIDADES",schema = "SFW_SUPORTE")
 @NamedQueries({
-        @NamedQuery(name = "Chamado.findTicketByNumber", query = "SELECT c FROM WCC_ATIVIDADES c where c.atividade = :numeroChamado")
+        @NamedQuery(name = "Chamado.findTicketByNumber", query = "SELECT c FROM Chamado c where c.numeroChamado = :ticketNumber")
 })
 
 public class Chamado implements Serializable {
@@ -20,7 +20,7 @@ public class Chamado implements Serializable {
     private String tituloChamado;
     @Column (name= "cod_projeto")
     private int codigoProjeto;
-    @Column (name = "descricao_atividade")
+    @Column (name = "descricao_necessidade")
     private String descricaoChamado;
     @Column (name = "status_call_center")
     private String statusChamado;
@@ -75,7 +75,7 @@ public class Chamado implements Serializable {
         this.numeroChamado = numeroChamado;
     }
 
-    public Chamado(int numeroChamado) {
-        this.numeroChamado = numeroChamado;
+    public Chamado(/*int numeroChamado*/) {
+        //this.numeroChamado = numeroChamado;
     }
 }
