@@ -1,15 +1,16 @@
 package integration.wcc.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.io.Serializable;
 @Entity
-@Table(name = "ATIVIDADES")
+@Table(name = "WCC_ATIVIDADES")
+@NamedQueries({
+        @NamedQuery(name = "Chamado.findTicketByNumber", query = "SELECT c FROM WCC_ATIVIDADES c where c.atividade = :numeroChamado")
+})
 
 public class Chamado implements Serializable {
     private static final long serialVersionUID = 1L;
+    public static final String FIND_TICKET_BY_NUMBER = "Chamado.findTicketByNumber";
 
     @Id
     @Column(name = "cod_atividade")
