@@ -13,8 +13,9 @@ public class TestNamedQuery {
         //List<Chamado> chamados = new ArrayList<Chamado>();
         //chamados = facade.listAll();
         Chamado chamado = new Chamado();
-        chamado = facade.findTicketByNumber(503875);
+        chamado = facade.findTicketByNumber(504355);
 
         System.out.println(chamado.getDescricaoChamado());
+        System.out.println(chamado.getProjeto().getNomeProjeto());
     }
 }

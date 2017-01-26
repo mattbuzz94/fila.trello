@@ -3,7 +3,7 @@ package integration.wcc.model;
 import javax.persistence.*;
 import java.io.Serializable;
 @Entity
-@Table(name = "WCC_ATIVIDADES",schema = "SFW_SUPORTE")
+@Table(name = "ATIVIDADES",schema = "CALLCENTER_RO")
 @NamedQueries({
         @NamedQuery(name = "Chamado.findTicketByNumber", query = "SELECT c FROM Chamado c where c.numeroChamado = :ticketNumber")
 })
@@ -18,14 +18,46 @@ public class Chamado implements Serializable {
 
     @Column(name = "atividade")
     private String tituloChamado;
-    @Column (name= "cod_projeto")
-    private int codigoProjeto;
+    //@Column (name= "cod_projeto")
+    //private int codigoProjeto;
     @Column (name = "descricao_necessidade")
     private String descricaoChamado;
     @Column (name = "status_call_center")
     private String statusChamado;
     @Column (name = "severidade_cliente")
     private int severidadeCliente;
+    @Column (name = "func_solucao")
+    private String analistaNome;
+    @Column (name = "descricao_solucao")
+    private String solucaoProposta;
+
+    @OneToOne
+    @JoinColumn(name="cod_projeto")
+    private ProjetoCliente projeto;
+
+    public String getAnalistaNome() {
+        return analistaNome;
+    }
+
+    public void setAnalistaNome(String analistaNome) {
+        this.analistaNome = analistaNome;
+    }
+
+    public String getSolucaoProposta() {
+        return solucaoProposta;
+    }
+
+    public void setSolucaoProposta(String solucaoProposta) {
+        this.solucaoProposta = solucaoProposta;
+    }
+
+    public ProjetoCliente getProjeto() {
+        return projeto;
+    }
+
+    public void setProjeto(ProjetoCliente projeto) {
+        this.projeto = projeto;
+    }
 
     public String getTituloChamado() {
         return tituloChamado;
@@ -35,13 +67,13 @@ public class Chamado implements Serializable {
         this.tituloChamado = tituloChamado;
     }
 
-    public int getCodigoProjeto() {
+    /*public int getCodigoProjeto() {
         return codigoProjeto;
-    }
+    }*/
 
-    public void setCodigoProjeto(int codigoProjeto) {
+    /*public void setCodigoProjeto(int codigoProjeto) {
         this.codigoProjeto = codigoProjeto;
-    }
+    }*/
 
     public String getDescricaoChamado() {
         return descricaoChamado;
