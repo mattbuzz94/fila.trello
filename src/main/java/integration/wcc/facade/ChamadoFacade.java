@@ -24,6 +24,17 @@ public class ChamadoFacade {
         return Chamado;
     }
 
+    public Chamado findTicketByNumberWithFila(int chamadoNumero) {
+        ChamadoDAO.beginTransaction();
+        Chamado Chamado = ChamadoDAO.findTicketByNumberWithFila(chamadoNumero);
+        ChamadoDAO.closeTransaction();
+        return Chamado;
+    }
+
+
+
+
+
     public void createChamado(Chamado Chamado) {
         ChamadoDAO.beginTransaction();
         ChamadoDAO.save(Chamado);
