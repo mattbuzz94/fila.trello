@@ -1,16 +1,24 @@
 package integration.wcc.model;
 
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "ATIVIDADES",schema = "CALLCENTER_RO")
 @NamedQueries({
-        @NamedQuery(name = "Chamado.findTicketByNumber", query = "SELECT c FROM Chamado c where c.numeroChamado = :ticketNumber")
+        @NamedQuery(name = "Chamado.findTicketByNumber", query = "SELECT c FROM Chamado c where c.numeroChamado = :ticketNumber"),
+        @NamedQuery(name = "Chamado.findTicketbyNumberWithFila", query = "SELECT c FROM Chamado c JOIN c.filaChamados f where c.numeroChamado =:chamadoNum")
 })
 
 public class Chamado implements Serializable {
     private static final long serialVersionUID = 1L;
     public static final String FIND_TICKET_BY_NUMBER = "Chamado.findTicketByNumber";
+    public static final String FIND_TICKET_BY_NUMBER_WITH_FILA = "Chamado.findTicketbyNumberWithFila";
 
     @Id
     @Column(name = "cod_atividade")
@@ -18,8 +26,6 @@ public class Chamado implements Serializable {
 
     @Column(name = "atividade")
     private String tituloChamado;
-    //@Column (name= "cod_projeto")
-    //private int codigoProjeto;
     @Column (name = "descricao_necessidade")
     private String descricaoChamado;
     @Column (name = "status_call_center")
@@ -34,6 +40,44 @@ public class Chamado implements Serializable {
     @OneToOne
     @JoinColumn(name="cod_projeto")
     private ProjetoCliente projeto;
+
+    @OneToMany(cascade = {CascadeType.ALL}, fetch = FetchType.EAGER, mappedBy = "chamado")
+    @Fetch(FetchMode.JOIN)
+    private List<FilaChamado> filaChamados = new ArrayList<FilaChamado>();
+
+    public List<FilaChamado> getFilaChamados() {
+        return filaChamados;
+    }
+
+    public void setFilaChamados(List<FilaChamado> filaChamados) {
+        this.filaChamados = filaChamados;
+    }
+
+    public List<FilaChamado> getFilaChamado() {
+        return filaChamados;
+    }
+
+    public void setFilaChamado(ArrayList<FilaChamado> adicao) {
+        this.filaChamados = filaChamados;
+    }
+
+    public void addFilaChamado(FilaChamado filaChamado) {
+        addFilaChamado(filaChamado, true);
+    }
+
+    void addFilaChamado(FilaChamado filaChamado, boolean set) {
+        if (filaChamado != null) {
+            if (getFilaChamado().contains(filaChamado)) {
+                getFilaChamado().set(getFilaChamado().indexOf(filaChamado), filaChamado);
+            } else {
+                getFilaChamado().add(filaChamado);
+            }
+            if (set) {
+                filaChamado.setChamado(this, false);
+            }
+        }
+    }
+
 
     public String getAnalistaNome() {
         return analistaNome;
@@ -66,14 +110,6 @@ public class Chamado implements Serializable {
     public void setTituloChamado(String tituloChamado) {
         this.tituloChamado = tituloChamado;
     }
-
-    /*public int getCodigoProjeto() {
-        return codigoProjeto;
-    }*/
-
-    /*public void setCodigoProjeto(int codigoProjeto) {
-        this.codigoProjeto = codigoProjeto;
-    }*/
 
     public String getDescricaoChamado() {
         return descricaoChamado;
@@ -109,5 +145,20 @@ public class Chamado implements Serializable {
 
     public Chamado(/*int numeroChamado*/) {
         //this.numeroChamado = numeroChamado;
+    }
+
+    @Override
+    public int hashCode() {
+        return numeroChamado;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Chamado) {
+            Chamado ch = (Chamado) obj;
+            return ch.getNumeroChamado() == numeroChamado;
+        }
+
+        return false;
     }
 }

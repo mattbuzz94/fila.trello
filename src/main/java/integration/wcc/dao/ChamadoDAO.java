@@ -19,6 +19,13 @@ public class ChamadoDAO extends GenericDAO<Chamado> {
         return super.findOneResult(Chamado.FIND_TICKET_BY_NUMBER, parameters);
     }
 
+    public Chamado findTicketByNumberWithFila(int numeroChamado) {
+        Map<String, Object> parameters = new HashMap<String, Object>();
+        parameters.put("chamadoNum", numeroChamado);
+
+        return super.findOneResult(Chamado.FIND_TICKET_BY_NUMBER_WITH_FILA, parameters);
+    }
+
 
 
     public void delete(Chamado chamado) {
