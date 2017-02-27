@@ -6,9 +6,6 @@ import org.trello4j.model.Board;
 import org.trello4j.model.Card;
 import org.trello4j.model.List;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class TestTrello {
     public static void main(String[] args) {
 
@@ -22,27 +19,23 @@ public class TestTrello {
         String cardDescription;
         Trello trello = new TrelloImpl(devKey,userToken);
 
-        // example: get organization by its name
-        // Organization org = trello.getOrganization("fogcreek");
-
         Board b = trello.getBoard(boardId);
 
         boardName = b.getName();
-
 
         List l = trello.getList(listId);
         listName = l.getName();
 
 
-        cardName = "Teste de Título";
-        cardDescription = "Vai dar Certo essa porra !";
+        //cardName = "Teste de Título";
+        //cardDescription = "Vai dar Certo essa porra !";
 
-        Map<String, String> map = new HashMap<String, String>();
-        map.put("desc", cardDescription);
+        // Map<String, String> map = new HashMap<String, String>();
+        // map.put("desc", cardDescription);
 
 
-        Card card = trello.createCard(listId, cardName, map);
-        card.setPos(99);
+        //Card card = trello.createCard(listId, cardName, map);
+        //card.setPos(99);
 
         System.out.println("Nome do Quadro: "+ boardName);
         System.out.println("Nome da Lista: "+ listName);

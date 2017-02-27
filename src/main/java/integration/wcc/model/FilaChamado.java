@@ -6,8 +6,8 @@ import java.io.Serializable;
 @Entity
 @Table(name = "FILA_CHAMADO", schema = "SFW_SUPORTE")
 @NamedQueries({
-        @NamedQuery(name = "FilaChamado.findTicketFilaByNumber", query = "SELECT c FROM FilaChamado c JOIN c.chamado ch where ch.numeroChamado = :ticketNumber")
-        //@NamedQuery(name = "FilaChamado.findTicketsByFila", query = "SELECT c FROM FilaChamado c JOIN c.fila f where f.idFila = :filaNumber")
+        @NamedQuery(name = "FilaChamado.findTicketFilaByNumber", query = "SELECT c FROM FilaChamado c JOIN c.chamado ch where ch.numeroChamado = :ticketNumber"),
+        @NamedQuery(name = "FilaChamado.findTicketsByFila", query = "SELECT c FROM FilaChamado c JOIN c.chamado f where c.id_fila = :filaNumber")
         //@NamedQuery(name = "FilaChamado.findTicketsByFila", query = "SELECT c FROM FilaChamado c where c.stack.id_fila = :filaNumber")
 })
 
