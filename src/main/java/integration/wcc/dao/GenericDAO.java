@@ -5,20 +5,22 @@ import javax.persistence.criteria.CriteriaQuery;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
-
 abstract class GenericDAO<T> implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("FilaTrello");
-    private EntityManager em;
+    private EntityManager em = emf.createEntityManager();
+    ;
 
+    /*
+        EntityManagerFactory emf = PesistenceManager.getEntityManagerFactory();
+        EntityManager em = emf.createEntityManager();*/
     private Class<T> entityClass;
 
     public void beginTransaction() {
-        em = emf.createEntityManager();
         em.clear();
-
         em.getTransaction().begin();
+
     }
 
     public void commit() {
@@ -30,12 +32,14 @@ abstract class GenericDAO<T> implements Serializable {
     }
 
     public void closeTransaction() {
+        System.out.println("Fechou Query");
+        em.getTransaction().commit();
         em.close();
     }
 
     public void commitAndCloseTransaction() {
-        commit();
-        closeTransaction();
+        em.getTransaction().commit();
+        em.close();
     }
 
     public void flush() {
@@ -145,3 +149,5 @@ abstract class GenericDAO<T> implements Serializable {
         }
     }
 }
+
+

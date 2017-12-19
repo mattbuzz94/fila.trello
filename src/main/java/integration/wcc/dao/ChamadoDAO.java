@@ -27,7 +27,6 @@ public class ChamadoDAO extends GenericDAO<Chamado> {
     }
 
 
-
     public void delete(Chamado chamado) {
         super.delete(chamado.getNumeroChamado(), Chamado.class);
     }

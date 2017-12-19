@@ -8,13 +8,11 @@ public class ChamadoFacade {
 
     private ChamadoDAO ChamadoDAO = new ChamadoDAO();
 
-
     public List<Chamado> listAll() {
         ChamadoDAO.beginTransaction();
         List<Chamado> result = ChamadoDAO.findAll();
         ChamadoDAO.closeTransaction();
         return result;
-
     }
 
     public Chamado findTicketByNumber(int chamadoNumero) {
@@ -30,11 +28,6 @@ public class ChamadoFacade {
         ChamadoDAO.closeTransaction();
         return Chamado;
     }
-
-
-
-
-
     public void createChamado(Chamado Chamado) {
         ChamadoDAO.beginTransaction();
         ChamadoDAO.save(Chamado);
@@ -43,14 +36,14 @@ public class ChamadoFacade {
 /*
     public void updateChamado(Chamado Chamado) {
         ChamadoDAO.beginTransaction();
-        Chamado persistedChamado = ChamadoDAO.find(Chamado.getId());
-        persistedChamado.setEmail(Chamado.getEmail());
+        Chamado persistedChamado = ChamadoDAO.findTicketByNumber(Chamado.getNumeroChamado());
+        persistedChamado.set(Chamado.getEmail());
         persistedChamado.setName(Chamado.getName());
         persistedChamado.setPassword(Chamado.getPassword());
         persistedChamado.setRole(Chamado.getRole());
         ChamadoDAO.update(persistedChamado);
         ChamadoDAO.commitAndCloseTransaction();
     }
-    */
+*/
 
 }

@@ -2,6 +2,7 @@ package integration.wcc.facade;
 
 import integration.wcc.dao.FilaChamadoDAO;
 import integration.wcc.model.FilaChamado;
+import org.hibernate.HibernateException;
 
 import java.util.List;
 
@@ -14,22 +15,31 @@ public class FilaChamadoFacade {
         List<FilaChamado> result = FilaChamadoDAO.findAll();
         FilaChamadoDAO.closeTransaction();
         return result;
-
     }
 
-    public FilaChamado findTicketByNumber(int filaChamadoNumero) {
+    public FilaChamado findTicketByNumber(int filaChamadoNumero, int idFila) {
         FilaChamadoDAO.beginTransaction();
-        FilaChamado FilaChamado = FilaChamadoDAO.findTicketFilaByNumber(filaChamadoNumero);
+        FilaChamado FilaChamado = FilaChamadoDAO.findTicketFilaByNumber(filaChamadoNumero, idFila);
         FilaChamadoDAO.closeTransaction();
         return FilaChamado;
     }
 
-    public List<FilaChamado> findTicketsByFila(int idFila) {
-        FilaChamadoDAO.beginTransaction();
-        List<FilaChamado> result = FilaChamadoDAO.findTicketsByFila(idFila);
-        FilaChamadoDAO.closeTransaction();
+    public List<FilaChamado> findTicketsByFila(int idFila, String listaDestino) {
+        List<FilaChamado> result = null;
+        try {
+            FilaChamadoDAO.beginTransaction();
+            result = FilaChamadoDAO.findTicketsByFila(idFila, listaDestino);
+            FilaChamadoDAO.flush();
+        } catch (HibernateException e) {
+            if (FilaChamadoDAO != null) {
+                FilaChamadoDAO.rollback();
+            }
+            e.printStackTrace();
+        } finally {
+            FilaChamadoDAO.closeTransaction();
+            System.out.print("Fechou no Facade");
+        }
         return result;
-
     }
 
     public void createFilaChamado(FilaChamado FilaChamado) {
@@ -37,16 +47,13 @@ public class FilaChamadoFacade {
         FilaChamadoDAO.save(FilaChamado);
         FilaChamadoDAO.commitAndCloseTransaction();
     }
-/*
+
     public void updateFilaChamado(FilaChamado FilaChamado) {
         FilaChamadoDAO.beginTransaction();
-        FilaChamado persistedFilaChamado = FilaChamadoDAO.find(FilaChamado.getId());
-        persistedFilaChamado.setEmail(FilaChamado.getEmail());
-        persistedFilaChamado.setName(FilaChamado.getName());
-        persistedFilaChamado.setPassword(FilaChamado.getPassword());
-        persistedFilaChamado.setRole(FilaChamado.getRole());
+        FilaChamado persistedFilaChamado = FilaChamadoDAO.findTicketFilaByNumber(FilaChamado.getChamado().getNumeroChamado(), FilaChamado.getId_fila());
+        //persistedFilaChamado.setChamado(FilaChamado.getChamado());
+        persistedFilaChamado.setObservacao(FilaChamado.getObservacao());
         FilaChamadoDAO.update(persistedFilaChamado);
         FilaChamadoDAO.commitAndCloseTransaction();
     }
-    */
 }

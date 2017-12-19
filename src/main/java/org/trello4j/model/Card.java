@@ -9,6 +9,9 @@ public class Card extends TrelloObject {
 	// TODO: checkItemStates
 	// TODO: badges
 
+    // Os atributos devem ter o mesmo nome que o atrbuto no JSON do TRELLO.
+    // Para ver o nome do atributo no trello sempre coloar .json na frente do link que está na tela.
+
 	private String name;
 	private String desc;
 	private boolean closed;
@@ -18,12 +21,28 @@ public class Card extends TrelloObject {
 	private List<String> idMembers;
 	private List<Attachment> attachments;
 	private List<Label> labels;
+    private String due;
+
+    // TODO:  Implementar metodo PUT para vincular idChecklist no Card.
+    private List<String> idChecklists;
+
+
 	private String url;
-	private double pos;
+    //position
+    private double pos;
+
+    public List<String> getChecklists() {
+        return idChecklists;
+    }
+
+    public void setChecklists(List<String> idChecklists) {
+        this.idChecklists = idChecklists;
+    }
+
 
     public String getName() {
-		return name;
-	}
+        return name;
+    }
 
 	public void setName(String name) {
 		this.name = name;
@@ -108,6 +127,14 @@ public class Card extends TrelloObject {
 	public void setLabels(List<Label> labels) {
 		this.labels = labels;
 	}
+
+    public String getDue() {
+        return due;
+    }
+
+    public void setDue(String due) {
+        this.due = due;
+    }
 
 	public class Attachment {
 
