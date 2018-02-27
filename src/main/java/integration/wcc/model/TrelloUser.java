@@ -6,12 +6,14 @@ import java.io.Serializable;
 @Entity
 @Table(name = "TRELLO_USER", schema = "SFW_SUPORTE")
 @NamedQueries({
-        @NamedQuery(name = "TrelloUser.findInfoByUserName", query = "SELECT u FROM TrelloUser u where u.userName = :login")
+        @NamedQuery(name = "TrelloUser.findInfoByUserName", query = "SELECT u FROM TrelloUser u where u.userName = :login"),
+        @NamedQuery(name = "TrelloUser.FindInfoByUserNameAndTipo", query = "SELECT u FROM TrelloUser u where u.userName = :login and u.tipoInfo = :tipo ")
 })
 
 public class TrelloUser implements Serializable {
     private static final long serialVersionUID = 1L;
     public static final String FIND_INFO_BY_USERNAME = "TrelloUser.findInfoByUserName";
+    public static final String FIND_INFO_BY_USERNAME_AND_TIPO = "TrelloUser.FindInfoByUserNameAndTipo";
     @Id
     @Column(name = "id_user")
     private int idUser;
@@ -27,6 +29,10 @@ public class TrelloUser implements Serializable {
     private int filaID;
     @Column(name = "equipe")
     private String equipe;
+    @Column(name = "tipo_info")
+    private String tipoInfo;
+
+
 
     public int getIdUser() {
         return idUser;
@@ -50,6 +56,14 @@ public class TrelloUser implements Serializable {
 
     public void setFilaID(int filaID) {
         this.filaID = filaID;
+    }
+
+    public String getTipoInfo() {
+        return tipoInfo;
+    }
+
+    public void setTipoInfo(String tipoInfo) {
+        this.tipoInfo = tipoInfo;
     }
 
     public TrelloUser() {

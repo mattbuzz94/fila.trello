@@ -1,0 +1,1157 @@
+Index: src/main/java/integration/wcc/test/ScheduleTest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/test/ScheduleTest.java	(revision )
++++ src/main/java/integration/wcc/test/ScheduleTest.java	(revision )
+@@ -0,0 +1,59 @@
++package integration.wcc.test;
++
++import java.util.Date;
++import java.util.concurrent.Executors;
++import java.util.concurrent.ScheduledExecutorService;
++import java.util.concurrent.ScheduledFuture;
++
++import static java.util.concurrent.TimeUnit.SECONDS;
++
++/**
++ * Created by u6030486 on 14/09/2017.
++ */
++public class ScheduleTest {
++    /*public static void main(String[] args) {
++        BeeperControl b = new BeeperControl();
++        b.beepForAnHour();
++    }*/
++    public static void main(String[] args) {
++        // run in a 5 minutes
++        final long timeInterval = 300000;
++        Runnable runnable = new Runnable() {
++            public void run() {
++                while (true) {
++                    // ------- code for task to run
++                    System.out.println("Hello !!" + new Date());
++                    // ------- ends here
++                    try {
++                        Thread.sleep(timeInterval);
++                    } catch (InterruptedException e) {
++                        e.printStackTrace();
++                    }
++                }
++            }
++        };
++        Thread thread = new Thread(runnable);
++        thread.start();
++    }
++}
++
++
++class BeeperControl {
++    private final ScheduledExecutorService scheduler =
++            Executors.newScheduledThreadPool(1);
++
++    public void beepForAnHour() {
++        final Runnable beeper = new Runnable() {
++            public void run() {
++                System.out.println("beep");
++            }
++        };
++        final ScheduledFuture<?> beeperHandle =
++                scheduler.scheduleAtFixedRate(beeper, 10, 10, SECONDS);
++        scheduler.schedule(new Runnable() {
++            public void run() {
++                beeperHandle.cancel(true);
++            }
++        }, 60 * 60, SECONDS);
++    }
++}
+Index: src/main/java/integration/wcc/facade/FilaChamadoFacade.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/facade/FilaChamadoFacade.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/facade/FilaChamadoFacade.java	(revision )
+@@ -2,6 +2,7 @@
+ 
+ import integration.wcc.dao.FilaChamadoDAO;
+ import integration.wcc.model.FilaChamado;
++import org.hibernate.HibernateException;
+ 
+ import java.util.List;
+ 
+@@ -14,22 +15,31 @@
+         List<FilaChamado> result = FilaChamadoDAO.findAll();
+         FilaChamadoDAO.closeTransaction();
+         return result;
+-
+     }
+ 
+-    public FilaChamado findTicketByNumber(int filaChamadoNumero) {
++    public FilaChamado findTicketByNumber(int filaChamadoNumero, int idFila) {
+         FilaChamadoDAO.beginTransaction();
+-        FilaChamado FilaChamado = FilaChamadoDAO.findTicketFilaByNumber(filaChamadoNumero);
++        FilaChamado FilaChamado = FilaChamadoDAO.findTicketFilaByNumber(filaChamadoNumero, idFila);
+         FilaChamadoDAO.closeTransaction();
+         return FilaChamado;
+     }
+ 
+-    public List<FilaChamado> findTicketsByFila(int idFila) {
+-        FilaChamadoDAO.beginTransaction();
+-        List<FilaChamado> result = FilaChamadoDAO.findTicketsByFila(idFila);
+-        FilaChamadoDAO.closeTransaction();
++    public List<FilaChamado> findTicketsByFila(int idFila, String listaDestino) {
++        List<FilaChamado> result = null;
++        try {
++            FilaChamadoDAO.beginTransaction();
++            result = FilaChamadoDAO.findTicketsByFila(idFila, listaDestino);
++            FilaChamadoDAO.flush();
++        } catch (HibernateException e) {
++            if (FilaChamadoDAO != null) {
++                FilaChamadoDAO.rollback();
++            }
++            e.printStackTrace();
++        } finally {
++            FilaChamadoDAO.closeTransaction();
++            System.out.print("Fechou no Facade");
++        }
+         return result;
+-
+     }
+ 
+     public void createFilaChamado(FilaChamado FilaChamado) {
+@@ -37,16 +47,13 @@
+         FilaChamadoDAO.save(FilaChamado);
+         FilaChamadoDAO.commitAndCloseTransaction();
+     }
+-/*
++
+     public void updateFilaChamado(FilaChamado FilaChamado) {
+         FilaChamadoDAO.beginTransaction();
+-        FilaChamado persistedFilaChamado = FilaChamadoDAO.find(FilaChamado.getId());
+-        persistedFilaChamado.setEmail(FilaChamado.getEmail());
+-        persistedFilaChamado.setName(FilaChamado.getName());
+-        persistedFilaChamado.setPassword(FilaChamado.getPassword());
+-        persistedFilaChamado.setRole(FilaChamado.getRole());
++        FilaChamado persistedFilaChamado = FilaChamadoDAO.findTicketFilaByNumber(FilaChamado.getChamado().getNumeroChamado(), FilaChamado.getId_fila());
++        //persistedFilaChamado.setChamado(FilaChamado.getChamado());
++        persistedFilaChamado.setObservacao(FilaChamado.getObservacao());
+         FilaChamadoDAO.update(persistedFilaChamado);
+         FilaChamadoDAO.commitAndCloseTransaction();
+     }
+-    */
+ }
+Index: src/main/java/integration/wcc/dao/TrelloUserDAO.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/dao/TrelloUserDAO.java	(revision )
++++ src/main/java/integration/wcc/dao/TrelloUserDAO.java	(revision )
+@@ -0,0 +1,23 @@
++package integration.wcc.dao;
++
++import integration.wcc.model.TrelloUser;
++
++import java.util.HashMap;
++import java.util.Map;
++
++
++public class TrelloUserDAO extends GenericDAO<TrelloUser> {
++
++    private static final long serialVersionUID = 1L;
++
++    public TrelloUserDAO() {
++        super(TrelloUser.class);
++    }
++
++    public TrelloUser findInfoByUserName(String userName) {
++        Map<String, Object> parameters = new HashMap<String, Object>();
++        parameters.put("login", userName);
++
++        return super.findOneResult(TrelloUser.FIND_INFO_BY_USERNAME, parameters);
++    }
++}
+Index: src/main/resources/META-INF/persistence.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/resources/META-INF/persistence.xml	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/resources/META-INF/persistence.xml	(revision )
+@@ -4,6 +4,7 @@
+              xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd">
+ 
++
+     <persistence-unit name="FilaTrello" transaction-type="RESOURCE_LOCAL">
+         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+         <class>integration.wcc.model.Chamado</class>
+@@ -19,6 +20,15 @@
+             <property name="hibernate.synonyms" value="true"/>
+             <property name="hibernate.show_sql" value="true"/>
+             <property name="hibernate.format_sql" value="false"/>
++            <property name="hibernate.c3p0.min_size" value="1"/>
++            <property name="hibernate.c3p0.max_size" value="10"/>
++            <property name="hibernate.c3p0.timeout" value="3"/>
++            <property name="hibernate.c3p0.maxIdle" value="1"/>
++            <property name="hibernate.c3p0.minEvictableIdleTimeMillis" value="1"/>
++            <property name="hibernate.c3p0.idle_test_period" value="0"/>
++            <property name="hibernate.c3p0.acquire_increment" value="2"/>
++
+         </properties>
++
+     </persistence-unit>
+ </persistence>
+\ No newline at end of file
+Index: src/main/java/integration/wcc/controller/ChamadoCard.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/controller/ChamadoCard.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/controller/ChamadoCard.java	(revision )
+@@ -3,92 +3,106 @@
+ import integration.wcc.facade.FilaChamadoFacade;
+ import integration.wcc.model.Chamado;
+ import integration.wcc.model.FilaChamado;
++import integration.wcc.model.TrelloUser;
+ import org.trello4j.Trello;
+ import org.trello4j.TrelloImpl;
+-import org.trello4j.model.Board;
+ import org.trello4j.model.Card;
++import org.trello4j.model.Member;
+ 
++import java.time.LocalDateTime;
++import java.time.format.DateTimeFormatter;
+ import java.util.ArrayList;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ 
+ public class ChamadoCard {
+-
+     private int numeroChamado;
+     private String observacaoChamado;
+     String devKey = "99b40dc68a7ca6f8083b36a62db6d2ea";
+-    String userToken = "10d93ac2e123dfcaed183f514ef73f249fa54ca9936f5b3827e65b4b92db187e";
+-    String boardId = "5874e18ea3a71833e0ec02c1";
+-    String listId = "5874e1cb943824b69db54ad6";
++    String userToken; //= "10d93ac2e123dfcaed183f514ef73f249fa54ca9936f5b3827e65b4b92db187e";
++    String boardId;//"5874e18ea3a71833e0ec02c1";
++    String listId;//= "5874e1cb943824b69db54ad6";
+     String boardName;
+     String listName;
+     String cardName;
+     String cardDescription;
+-    Trello trello = new TrelloImpl(devKey, userToken);
++    LocalDateTime now = LocalDateTime.now();
+ 
++    //Esse Label ID é do quadro pessoal de Matheus Maciel
++    String idLabels = "5874e18eced82109ffad35ce";
+ 
+-    public List<FilaChamado> BuscaChamados(int id_fila) {
++    public String getIdLabels() {
++        return idLabels;
++    }
++
++    public void setIdLabels(String idLabels) {
++        this.idLabels = idLabels;
++    }
++
++    public List<FilaChamado> BuscaChamados(int id_fila, String listDestino) {
+         FilaChamadoFacade facade1 = new FilaChamadoFacade();
+         List<FilaChamado> chamadoFila = new ArrayList<FilaChamado>();
+-        chamadoFila = facade1.findTicketsByFila(id_fila);
++        chamadoFila = facade1.findTicketsByFila(id_fila, listDestino);
+         return chamadoFila;
+     }
+ 
+-    public List<Integer> ChamadosNoTrello() {
++    public void AtualizaChamado(FilaChamado filaChamado) {
++        FilaChamadoFacade filaChamadoFacade = new FilaChamadoFacade();
+ 
+-        String nameCard;
+-        int numChamado;
++        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
++        LocalDateTime dateTime = LocalDateTime.now();
++        String formattedDateTime = dateTime.format(formatter);
+ 
+-        List<Integer> numChamados = new ArrayList<Integer>();
+-
+-
+-        Board b = trello.getBoard(boardId);
+-
+-        boardName = b.getName();
+-
+-        org.trello4j.model.List l = trello.getList(listId);
+-        listName = l.getName();
+-
+-        System.out.println("Nome do Quadro: " + boardName);
+-        System.out.println("Nome da Lista: " + listName);
+-
+-        java.util.List<Card> listCards = trello.getCardsByList("5874e1cb943824b69db54ad6");
+-
+-        for (Card cartao : listCards) {
+-            nameCard = cartao.getName().substring(0, 6);
+-            numChamado = Integer.parseInt(nameCard);
+-            numChamados.add(numChamado);
+-        }
+-        return numChamados;
++        filaChamado.setObservacao("Enviado Trello " + formattedDateTime.toString());
++        filaChamadoFacade.updateFilaChamado(filaChamado);
++    }
+ 
+-    }
+-
+-    public List<Chamado> ValidaNotificacaoTrello() {
+-        //Alterar posteriormente pois está passando o parametro de fila via harcode
+-        List<FilaChamado> chamadosFila = BuscaChamados(4140);
++    public List<Chamado> ValidaNotificacaoTrello(int idFila, String listName) {
++        List<FilaChamado> chamadosFila = BuscaChamados(idFila, listName); // 4140 Matheus Maciel
+         List<Chamado> chamados = new ArrayList<Chamado>();
+ 
+-
+         //Preenche o lista de chamados com todos os chamados que estão na fila passada por parametro
+         for (FilaChamado filaChamado : chamadosFila) {
+             numeroChamado = filaChamado.getChamado().getNumeroChamado();
+             observacaoChamado = filaChamado.getObservacao();
+             if (observacaoChamado != null) {
+-                if (observacaoChamado.equals("Enviar Trello")) {
++                if (observacaoChamado.equals("produtos")) {
+                     chamados.add(filaChamado.getChamado());
++                    AtualizaChamado(filaChamado);
+                 }
+             }
+         }
+         return chamados;
+     }
+ 
+-    public void InsereChamado() {
+-        List<Chamado> chamados = ValidaNotificacaoTrello();
++    public void InsereChamado(TrelloUser trelloUser) {
++        Trello trello = new TrelloImpl(devKey, trelloUser.getUserToken());
++        List<Chamado> chamados = ValidaNotificacaoTrello(trelloUser.getFilaID(), "produtos");
+         String cliente;
+         String numeroChamado;
+         String tituloChamado;
+         String descricaoChamado;
++        String member;
++        Member analista = trello.getMember(trelloUser.getUserName());
++        Member backupCoordenador = trello.getMember("vanessasousa9");
++        Member backupEspecialista = trello.getMember("renatosantana4");
++        Member coordenador = trello.getMember("marcelbatista3");
++        Member especialista = trello.getMember("sandragemin");
++
++        Card card = new Card();
++        now = now.plusDays(1).minusHours(1);
++
++        List<String> cardMember = new ArrayList<String>();
++        cardMember.add(analista.getId());
++        cardMember.add(backupCoordenador.getId());
++        cardMember.add(backupEspecialista.getId());
++        cardMember.add(coordenador.getId());
++        cardMember.add(especialista.getId());
++
++        card.setIdMembers(cardMember);
++        member = retornaMembros(cardMember);
++
+         for (Chamado chamado : chamados) {
+             numeroChamado = String.valueOf(chamado.getNumeroChamado());
+             cliente = chamado.getProjeto().getNomeProjeto();
+@@ -104,15 +118,64 @@
+ 
+             cardName = title.toString();
+             cardDescription = descricaoChamado;
++            System.out.println(cardName + " - " + trelloUser.getUserName());
+ 
++            // Aqui são passados os parametros que criam o card no Trello --Notar que cada um vai em um put --
+             Map<String, String> map = new HashMap<String, String>();
+             map.put("desc", cardDescription);
++            map.put("idMembers", member);
++            //map.put("idMembers", cardMember.get(1).toString());
+ 
+-            Card card = trello.createCard(listId, cardName, map);
+-            List<String> cardMember = new ArrayList<String>();
+-            cardMember.add("573f6210f01944062044c9e7");
+-            card.setIdMembers(cardMember);
+-            //card.setPos(99);
++            map.put("due", now.toString());
++
++            //map.put("idLabels",idLabels);
++            // Checklists não está dando certo
++            //map.put("idChecklists",idChecklists);
++
++            card = trello.createCard(trelloUser.getListID(), cardName, map);
+         }
++        return;
+     }
++
++    public String retornaMembros(List<String> cardMembros) {
++        String idMember;
++        String members = "";
++        for (String element : cardMembros) {
++            idMember = element;
++            members += "," + idMember;
++        }
++        return members.substring(1);
++    }
+ }
++/*    public void apagaObsChamado(List<Chamado> tickets){
++        FilaChamadoFacade facade1 = new FilaChamadoFacade();
++        for (Chamado ticket: tickets) {
++            facade1.updateFilaChamado();
++        }
++    }
++    public List<Integer> ChamadosNoTrello(TrelloUser trelloUser) {
++        Trello trello = new TrelloImpl(devKey, trelloUser.getUserToken());
++        String nameCard;
++        int numChamado;
++
++        List<Integer> numChamados = new ArrayList<Integer>();
++
++        Board b = trello.getBoard(boardId);
++        boardName = b.getName();
++
++        org.trello4j.model.List l = trello.getList(listId);
++        listName = l.getName();
++
++        System.out.println("Nome do Quadro: " + boardName);
++        System.out.println("Nome da Lista: " + listName);
++
++        java.util.List<Card> listCards = trello.getCardsByList("5874e1cb943824b69db54ad6");
++
++        for (Card cartao : listCards) {
++            nameCard = cartao.getName().substring(0, 6);
++            numChamado = Integer.parseInt(nameCard);
++            numChamados.add(numChamado);
++        }
++        return numChamados;
++    }
++*/
+\ No newline at end of file
+Index: src/main/java/org/trello4j/model/Card.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/org/trello4j/model/Card.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/org/trello4j/model/Card.java	(revision )
+@@ -9,6 +9,9 @@
+ 	// TODO: checkItemStates
+ 	// TODO: badges
+ 
++    // Os atributos devem ter o mesmo nome que o atrbuto no JSON do TRELLO.
++    // Para ver o nome do atributo no trello sempre coloar .json na frente do link que está na tela.
++
+ 	private String name;
+ 	private String desc;
+ 	private boolean closed;
+@@ -18,11 +21,27 @@
+ 	private List<String> idMembers;
+ 	private List<Attachment> attachments;
+ 	private List<Label> labels;
++    private String due;
++
++    // TODO:  Implementar metodo PUT para vincular idChecklist no Card.
++    private List<String> idChecklists;
++
++
+ 	private String url;
+-	private double pos;
++    //position
++    private double pos;
+ 
++    public List<String> getChecklists() {
++        return idChecklists;
++    }
++
++    public void setChecklists(List<String> idChecklists) {
++        this.idChecklists = idChecklists;
++    }
++
++
+     public String getName() {
+-		return name;
++        return name;
+ 	}
+ 
+ 	public void setName(String name) {
+@@ -109,6 +128,14 @@
+ 		this.labels = labels;
+ 	}
+ 
++    public String getDue() {
++        return due;
++    }
++
++    public void setDue(String due) {
++        this.due = due;
++    }
++
+ 	public class Attachment {
+ 
+ 		private String _id;
+Index: src/main/java/integration/wcc/dao/GenericDAO.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/dao/GenericDAO.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/dao/GenericDAO.java	(revision )
+@@ -5,20 +5,22 @@
+ import java.io.Serializable;
+ import java.util.List;
+ import java.util.Map;
+-
+ abstract class GenericDAO<T> implements Serializable {
+     private static final long serialVersionUID = 1L;
+ 
+     private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("FilaTrello");
+-    private EntityManager em;
++    private EntityManager em = emf.createEntityManager();
++    ;
+ 
++    /*
++        EntityManagerFactory emf = PesistenceManager.getEntityManagerFactory();
++        EntityManager em = emf.createEntityManager();*/
+     private Class<T> entityClass;
+ 
+     public void beginTransaction() {
+-        em = emf.createEntityManager();
+         em.clear();
+-
+         em.getTransaction().begin();
++
+     }
+ 
+     public void commit() {
+@@ -30,12 +32,14 @@
+     }
+ 
+     public void closeTransaction() {
++        System.out.println("Fechou Query");
++        em.getTransaction().commit();
+         em.close();
+     }
+ 
+     public void commitAndCloseTransaction() {
+-        commit();
+-        closeTransaction();
++        em.getTransaction().commit();
++        em.close();
+     }
+ 
+     public void flush() {
+@@ -145,3 +149,5 @@
+         }
+     }
+ }
++
++
+Index: src/main/java/integration/Main.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/Main.java	(revision )
++++ src/main/java/integration/Main.java	(revision )
+@@ -0,0 +1,36 @@
++package integration;
++
++import integration.wcc.controller.ChamadoCard;
++import integration.wcc.facade.TrelloUserFacade;
++import integration.wcc.model.TrelloUser;
++
++import java.util.ArrayList;
++import java.util.Date;
++import java.util.List;
++import java.util.concurrent.Executors;
++import java.util.concurrent.ScheduledExecutorService;
++import java.util.concurrent.TimeUnit;
++
++public class Main {
++    public static void main(String[] args) {
++        TrelloUser trelloU = new TrelloUser();
++        TrelloUserFacade facade2 = new TrelloUserFacade();
++        List<TrelloUser> trelloUsers = new ArrayList<TrelloUser>();
++        trelloUsers = facade2.listAll();
++        final ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
++        final List<TrelloUser> finalTrelloUsers = trelloUsers;
++        ses.scheduleWithFixedDelay(new Runnable() {
++            @Override
++            public void run() {
++                System.out.println("Chamados enviados em " + new Date());
++                for (TrelloUser trelloUser : finalTrelloUsers) {
++                    if (trelloUser.getUserToken() != null) {
++                        System.out.println("Selects do usuario: " + trelloUser.getUserName());
++                        ChamadoCard cards = new ChamadoCard();
++                        cards.InsereChamado(trelloUser);
++                    }
++                }
++            }
++        }, 0, 3, TimeUnit.MINUTES);
++    }
++}
+Index: src/main/java/integration/wcc/dao/PesistenceManager.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/dao/PesistenceManager.java	(revision )
++++ src/main/java/integration/wcc/dao/PesistenceManager.java	(revision )
+@@ -0,0 +1,24 @@
++package integration.wcc.dao;
++
++import javax.persistence.EntityManager;
++import javax.persistence.EntityManagerFactory;
++import javax.persistence.Persistence;
++
++/**
++ * Created by u6030486 on 14/09/2017.
++ */
++public class PesistenceManager {
++    private static EntityManagerFactory emf = null;
++
++    public static EntityManager getEntityManager() {
++        return getEntityManagerFactory().createEntityManager();
++    }
++
++    public static EntityManagerFactory getEntityManagerFactory() {
++        if (emf == null) {
++            emf = Persistence.createEntityManagerFactory("FilaTrello");
++            return emf;
++        } else
++            return emf;
++    }
++}
+Index: src/main/java/integration/wcc/facade/TrelloUserFacade.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/facade/TrelloUserFacade.java	(revision )
++++ src/main/java/integration/wcc/facade/TrelloUserFacade.java	(revision )
+@@ -0,0 +1,44 @@
++package integration.wcc.facade;
++
++import integration.wcc.dao.TrelloUserDAO;
++import integration.wcc.model.TrelloUser;
++
++import java.util.List;
++
++public class TrelloUserFacade {
++    private TrelloUserDAO trelloUserDAO = new TrelloUserDAO();
++
++
++    public List<TrelloUser> listAll() {
++        trelloUserDAO.beginTransaction();
++        List<TrelloUser> result = trelloUserDAO.findAll();
++        trelloUserDAO.closeTransaction();
++        return result;
++    }
++
++    public TrelloUser findInfoByUserName(String userName) {
++        trelloUserDAO.beginTransaction();
++        TrelloUser trelloUser = trelloUserDAO.findInfoByUserName(userName);
++        trelloUserDAO.closeTransaction();
++        return trelloUser;
++    }
++
++    public void createTrelloUser(TrelloUser TrelloUser) {
++        trelloUserDAO.beginTransaction();
++        trelloUserDAO.save(TrelloUser);
++        trelloUserDAO.commitAndCloseTransaction();
++    }
++/*
++    public void updateTrelloUser(TrelloUser TrelloUser) {
++        TrelloUserDAO.beginTransaction();
++        TrelloUser persistedTrelloUser = TrelloUserDAO.find(TrelloUser.getId());
++        persistedTrelloUser.setEmail(TrelloUser.getEmail());
++        persistedTrelloUser.setName(TrelloUser.getName());
++        persistedTrelloUser.setPassword(TrelloUser.getPassword());
++        persistedTrelloUser.setRole(TrelloUser.getRole());
++        TrelloUserDAO.update(persistedTrelloUser);
++        TrelloUserDAO.commitAndCloseTransaction();
++    }
++    */
++
++}
+Index: src/main/java/integration/wcc/test/AlltoTrelloTest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/test/AlltoTrelloTest.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/test/AlltoTrelloTest.java	(revision )
+@@ -1,14 +1,56 @@
+ package integration.wcc.test;
+ 
+-import integration.wcc.controller.ChamadoCard;
++import org.trello4j.Trello;
++import org.trello4j.TrelloImpl;
++import org.trello4j.model.Card;
++import org.trello4j.model.Member;
+ 
+-/**
+- * Created by u6030486 on 27/02/2017.
+- */
++import java.util.ArrayList;
++import java.util.List;
++
++
+ public class AlltoTrelloTest {
+ 
+-    public static void main(String[] args) {
+-        ChamadoCard cards = new ChamadoCard();
+-        cards.InsereChamado();
++
++    public static void main(String[] args) throws Exception {
++        String devKey = "99b40dc68a7ca6f8083b36a62db6d2ea";
++        String userToken = "10d93ac2e123dfcaed183f514ef73f249fa54ca9936f5b3827e65b4b92db187e";
++        Trello trello = new TrelloImpl(devKey, userToken);
++        Member analista = trello.getMember("matheusmaciel77");
++        Member backupCoordenador = trello.getMember("vanessasousa9");
++        Member backupEspecialista = trello.getMember("renatosantana4");
++        Member coordenador = trello.getMember("marcelbatista3");
++        Member especialista = trello.getMember("sandragemin");
++
++
++        Card card = new Card();
++
++        List<String> cardMember = new ArrayList<String>();
++        cardMember.add(analista.getId());
++        cardMember.add(backupCoordenador.getId());
++        cardMember.add(backupEspecialista.getId());
++        cardMember.add(coordenador.getId());
++        cardMember.add(especialista.getId());
++        card.setIdMembers(cardMember);
++
++
++        String meb = retornaMembros(cardMember);
++
++        System.out.println(meb);
++
++    }
++
++
++    public static String retornaMembros(List<String> cardMembros) {
++
++
++        String idMember;
++        String members = "";
++        for (String element : cardMembros) {
++            idMember = element;
++            members += "," + idMember;
++
++        }
++        return members.substring(1);
+     }
+ }
+Index: src/main/java/integration/wcc/facade/ChamadoFacade.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/facade/ChamadoFacade.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/facade/ChamadoFacade.java	(revision )
+@@ -8,13 +8,11 @@
+ 
+     private ChamadoDAO ChamadoDAO = new ChamadoDAO();
+ 
+-
+     public List<Chamado> listAll() {
+         ChamadoDAO.beginTransaction();
+         List<Chamado> result = ChamadoDAO.findAll();
+         ChamadoDAO.closeTransaction();
+         return result;
+-
+     }
+ 
+     public Chamado findTicketByNumber(int chamadoNumero) {
+@@ -30,11 +28,6 @@
+         ChamadoDAO.closeTransaction();
+         return Chamado;
+     }
+-
+-
+-
+-
+-
+     public void createChamado(Chamado Chamado) {
+         ChamadoDAO.beginTransaction();
+         ChamadoDAO.save(Chamado);
+@@ -43,14 +36,14 @@
+ /*
+     public void updateChamado(Chamado Chamado) {
+         ChamadoDAO.beginTransaction();
+-        Chamado persistedChamado = ChamadoDAO.find(Chamado.getId());
+-        persistedChamado.setEmail(Chamado.getEmail());
++        Chamado persistedChamado = ChamadoDAO.findTicketByNumber(Chamado.getNumeroChamado());
++        persistedChamado.set(Chamado.getEmail());
+         persistedChamado.setName(Chamado.getName());
+         persistedChamado.setPassword(Chamado.getPassword());
+         persistedChamado.setRole(Chamado.getRole());
+         ChamadoDAO.update(persistedChamado);
+         ChamadoDAO.commitAndCloseTransaction();
+     }
+-    */
++*/
+ 
+ }
+Index: src/main/java/integration/wcc/util/FXMLUtil.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/util/FXMLUtil.java	(revision )
++++ src/main/java/integration/wcc/util/FXMLUtil.java	(revision )
+@@ -0,0 +1,24 @@
++package integration.wcc.util;
++
++import javafx.fxml.FXMLLoader;
++import javafx.scene.Parent;
++
++import java.io.IOException;
++
++/**
++ * Created by DOM on 26/03/2017.
++ * email: douglas.janerson@gmail.com
++ */
++public abstract class FXMLUtil {
++
++    public static Parent getFxml(String fxmlName) {
++        String fxml = fxmlName.endsWith(".fxml") ? fxmlName : fxmlName.concat(".fxml");
++        Parent p = null;
++        try {
++            p = FXMLLoader.load(FXMLUtil.class.getClass().getResource("/fxml/" + fxml));
++        } catch (IOException e) {
++            e.printStackTrace();
++        }
++        return p;
++    }
++}
+Index: src/main/java/integration/wcc/test/TestTrello.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/test/TestTrello.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/test/TestTrello.java	(revision )
+@@ -5,6 +5,7 @@
+ import org.trello4j.model.Board;
+ import org.trello4j.model.Card;
+ import org.trello4j.model.List;
++import org.trello4j.model.Member;
+ 
+ public class TestTrello {
+     public static void main(String[] args) {
+@@ -18,28 +19,19 @@
+         String cardName;
+         String cardDescription;
+         Trello trello = new TrelloImpl(devKey,userToken);
+-
++        Member member;
+         Board b = trello.getBoard(boardId);
++        member = trello.getMember("matheusmaciel77");
++        trello.getBoardsByMember("matheusmaciel77");
+ 
+         boardName = b.getName();
+ 
+         List l = trello.getList(listId);
+         listName = l.getName();
+ 
+-
+-        //cardName = "Teste de Título";
+-        //cardDescription = "Vai dar Certo essa porra !";
+-
+-        // Map<String, String> map = new HashMap<String, String>();
+-        // map.put("desc", cardDescription);
+-
+-
+-        //Card card = trello.createCard(listId, cardName, map);
+-        //card.setPos(99);
+-
+         System.out.println("Nome do Quadro: "+ boardName);
+         System.out.println("Nome da Lista: "+ listName);
+-
++        System.out.println("Nome do Membro: " + member.getId());
+         java.util.List<Card> listCards = trello.getCardsByList("5874e1cb943824b69db54ad6");
+ 
+         for (Card cartao: listCards) {
+Index: src/main/java/META-INF/MANIFEST.MF
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/META-INF/MANIFEST.MF	(revision )
++++ src/main/java/META-INF/MANIFEST.MF	(revision )
+@@ -0,0 +1,3 @@
++Manifest-Version: 1.0
++Main-Class: integration.Main
++
+Index: src/main/java/integration/wcc/model/FilaChamado.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/model/FilaChamado.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/model/FilaChamado.java	(revision )
+@@ -6,8 +6,8 @@
+ @Entity
+ @Table(name = "FILA_CHAMADO", schema = "SFW_SUPORTE")
+ @NamedQueries({
+-        @NamedQuery(name = "FilaChamado.findTicketFilaByNumber", query = "SELECT c FROM FilaChamado c JOIN c.chamado ch where ch.numeroChamado = :ticketNumber"),
+-        @NamedQuery(name = "FilaChamado.findTicketsByFila", query = "SELECT c FROM FilaChamado c JOIN c.chamado f where c.id_fila = :filaNumber")
++        @NamedQuery(name = "FilaChamado.findTicketFilaByNumber", query = "SELECT c FROM FilaChamado c JOIN c.chamado ch where ch.numeroChamado = :ticketNumber and c.id_fila =:filaNumber"),
++        @NamedQuery(name = "FilaChamado.findTicketsByFila", query = "SELECT c FROM FilaChamado c JOIN c.chamado f where c.id_fila = :filaNumber and c.observacao =:listParam")
+         //@NamedQuery(name = "FilaChamado.findTicketsByFila", query = "SELECT c FROM FilaChamado c where c.stack.id_fila = :filaNumber")
+ })
+ 
+Index: src/main/java/integration/wcc/model/TrelloUser.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/model/TrelloUser.java	(revision )
++++ src/main/java/integration/wcc/model/TrelloUser.java	(revision )
+@@ -0,0 +1,97 @@
++package integration.wcc.model;
++
++import javax.persistence.*;
++import java.io.Serializable;
++
++@Entity
++@Table(name = "TRELLO_USER", schema = "SFW_SUPORTE")
++@NamedQueries({
++        @NamedQuery(name = "TrelloUser.findInfoByUserName", query = "SELECT u FROM TrelloUser u where u.userName = :login")
++})
++
++public class TrelloUser implements Serializable {
++    private static final long serialVersionUID = 1L;
++    public static final String FIND_INFO_BY_USERNAME = "TrelloUser.findInfoByUserName";
++    @Id
++    @Column(name = "id_user")
++    private int idUser;
++    @Column(name = "username")
++    private String userName;
++    @Column(name = "board_id")
++    private String boardID;
++    @Column(name = "usertoken")
++    private String userToken;
++    @Column(name = "list_id")
++    private String listID;
++    @Column(name = "fila_id")
++    private int filaID;
++    @Column(name = "equipe")
++    private String equipe;
++
++    public int getIdUser() {
++        return idUser;
++    }
++
++    public void setIdUser(int idUser) {
++        this.idUser = idUser;
++    }
++
++    public String getEquipe() {
++        return equipe;
++    }
++
++    public void setEquipe(String equipe) {
++        this.equipe = equipe;
++    }
++
++    public int getFilaID() {
++        return filaID;
++    }
++
++    public void setFilaID(int filaID) {
++        this.filaID = filaID;
++    }
++
++    public TrelloUser() {
++    }
++
++    public TrelloUser(String userName, String boardID, String userToken, String listID, int filaID) {
++        this.userName = userName;
++        this.boardID = boardID;
++        this.userToken = userToken;
++        this.listID = listID;
++        this.filaID = filaID;
++    }
++
++    public String getUserName() {
++        return userName;
++    }
++
++    public void setUserName(String userName) {
++        this.userName = userName;
++    }
++
++    public String getBoardID() {
++        return boardID;
++    }
++
++    public void setBoardID(String boardID) {
++        this.boardID = boardID;
++    }
++
++    public String getUserToken() {
++        return userToken;
++    }
++
++    public void setUserToken(String userToken) {
++        this.userToken = userToken;
++    }
++
++    public String getListID() {
++        return listID;
++    }
++
++    public void setListID(String listID) {
++        this.listID = listID;
++    }
++}
+Index: src/main/java/integration/wcc/test/TestNamedQuery.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/test/TestNamedQuery.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/test/TestNamedQuery.java	(revision )
+@@ -1,7 +1,8 @@
+ package integration.wcc.test;
+ 
+-import integration.wcc.facade.FilaChamadoFacade;
+-import integration.wcc.model.FilaChamado;
++import integration.wcc.controller.ChamadoCard;
++import integration.wcc.facade.TrelloUserFacade;
++import integration.wcc.model.TrelloUser;
+ 
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -10,32 +11,18 @@
+ public class TestNamedQuery {
+     public static void main(String[] args) {
+ 
+-        //ChamadoFacade facade = new ChamadoFacade();
+-        //List<Chamado> chamados = new ArrayList<Chamado>();
+-        //chamados = facade.listAll();
+-        //Chamado chamado = new Chamado();
+-        //chamado = facade.findTicketByNumberWithFila(504355);
++        TrelloUser trelloU = new TrelloUser();
++        TrelloUserFacade facade2 = new TrelloUserFacade();
++        List<TrelloUser> trelloUsers1 = new ArrayList<TrelloUser>();
++        trelloUsers1 = facade2.listAll();
+ 
+-
+-        FilaChamadoFacade facade1 = new FilaChamadoFacade();
+-        List<FilaChamado> chamadosFila = new ArrayList<FilaChamado>();
+-        chamadosFila = facade1.findTicketsByFila(4140);
+-        int count = 0;
+-        for (FilaChamado chamado : chamadosFila) {
+-            System.out.println(chamado.getChamado().getNumeroChamado());
+-            System.out.println(chamado.getChamado().getProjeto().getNomeProjeto());
+-            System.out.println(chamado.getChamado().getTituloChamado());
+-            System.out.println(chamado.getChamado().getDescricaoChamado());
+-            System.out.println(chamado.getChamado().getAnalistaNome());
+-            System.out.println(chamado.getObservacao());
+-            count++;
+-            System.out.println("Chamado " + count);
++        for (TrelloUser trelloUser : trelloUsers1) {
++            if (trelloUser.getUserToken() != null) {
++                System.out.println("Selectss do usuario: " + trelloUser.getUserName());
++                ChamadoCard cards = new ChamadoCard();
++                cards.InsereChamado(trelloUser);
++            }
+         }
+-
+-//        System.out.println(chamado.getDescricaoChamado());
+-        //      System.out.println(chamado.getProjeto().getNomeProjeto());
+-        //    System.out.println(chamado.getFilaChamado().get(1).getObservacao());
+-        //  System.out.println(chamado.getFilaChamado().get(1).getId_fila());
+ 
+ 
+     }
+Index: src/main/resources/META-INF/MANIFEST.MF
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/resources/META-INF/MANIFEST.MF	(revision )
++++ src/main/resources/META-INF/MANIFEST.MF	(revision )
+@@ -0,0 +1,3 @@
++Manifest-Version: 1.0
++Main-Class: integration.Main
++
+Index: src/main/java/integration/wcc/dao/FilaChamadoDAO.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/dao/FilaChamadoDAO.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/dao/FilaChamadoDAO.java	(revision )
+@@ -15,16 +15,17 @@
+         super(FilaChamado.class);
+     }
+ 
+-    public FilaChamado findTicketFilaByNumber(int numeroChamado) {
++    public FilaChamado findTicketFilaByNumber(int numeroChamado, int idFila) {
+         Map<String, Object> parameters = new HashMap<String, Object>();
+         parameters.put("ticketNumber", numeroChamado);
+-
++        parameters.put("filaNumber", idFila);
+         return super.findOneResult(FilaChamado.FIND_TICKET_FILA_BY_NUMBER, parameters);
+     }
+ 
+-    public List<FilaChamado> findTicketsByFila(int idFila) {
++    public List<FilaChamado> findTicketsByFila(int idFila, String listType) {
+         Map<String, Object> parameters = new HashMap<String, Object>();
+         parameters.put("filaNumber", idFila);
++        parameters.put("listParam", listType);
+ 
+         return super.findListResult(FilaChamado.FIND_TICKETS_FILA_BY_FILA, parameters);
+     }
+Index: src/ConfiguraFila.fxml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/ConfiguraFila.fxml	(revision )
++++ src/ConfiguraFila.fxml	(revision )
+@@ -0,0 +1,19 @@
++<?xml version="1.0" encoding="UTF-8"?>
++
++<?import javafx.scene.layout.ColumnConstraints?>
++<?import javafx.scene.layout.GridPane?>
++<?import javafx.scene.layout.RowConstraints?>
++
++<GridPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0"
++          prefWidth="600.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.101"
++          fx:controller="integration.wcc.controller.ChamadoCard">
++    <columnConstraints>
++        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
++        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
++    </columnConstraints>
++    <rowConstraints>
++        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
++        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
++        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
++    </rowConstraints>
++</GridPane>
+Index: src/main/java/integration/wcc/dao/ChamadoDAO.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/integration/wcc/dao/ChamadoDAO.java	(revision 9ab95cf0b61ad3ec73ac9f5b4397e36ab34c1289)
++++ src/main/java/integration/wcc/dao/ChamadoDAO.java	(revision )
+@@ -27,7 +27,6 @@
+     }
+ 
+ 
+-
+     public void delete(Chamado chamado) {
+         super.delete(chamado.getNumeroChamado(), Chamado.class);
+     }

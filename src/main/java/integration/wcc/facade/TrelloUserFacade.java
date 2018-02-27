@@ -23,6 +23,13 @@ public class TrelloUserFacade {
         return trelloUser;
     }
 
+    public TrelloUser findInfoByUserNameAndInfo(String userName, String tipoInfo) {
+        trelloUserDAO.beginTransaction();
+        TrelloUser trelloUser = trelloUserDAO.findInfoByUserNameAndTipo(userName, tipoInfo);
+        trelloUserDAO.closeTransaction();
+        return trelloUser;
+    }
+
     public void createTrelloUser(TrelloUser TrelloUser) {
         trelloUserDAO.beginTransaction();
         trelloUserDAO.save(TrelloUser);

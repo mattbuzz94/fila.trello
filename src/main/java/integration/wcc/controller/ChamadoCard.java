@@ -19,18 +19,18 @@ import java.util.Map;
 public class ChamadoCard {
     private int numeroChamado;
     private String observacaoChamado;
-    String devKey = "99b40dc68a7ca6f8083b36a62db6d2ea";
-    String userToken; //= "10d93ac2e123dfcaed183f514ef73f249fa54ca9936f5b3827e65b4b92db187e";
-    String boardId;//"5874e18ea3a71833e0ec02c1";
-    String listId;//= "5874e1cb943824b69db54ad6";
-    String boardName;
-    String listName;
-    String cardName;
-    String cardDescription;
-    LocalDateTime now = LocalDateTime.now();
+    private String devKey = "99b40dc68a7ca6f8083b36a62db6d2ea";
+    private String userToken; //= "10d93ac2e123dfcaed183f514ef73f249fa54ca9936f5b3827e65b4b92db187e";
+    private String boardId;//"5874e18ea3a71833e0ec02c1";
+    private String listId;//= "5874e1cb943824b69db54ad6";
+    private String boardName;
+    private String listName;
+    private String cardName;
+    private String cardDescription;
+    private LocalDateTime now = LocalDateTime.now();
 
     //Esse Label ID é do quadro pessoal de Matheus Maciel
-    String idLabels = "5874e18eced82109ffad35ce";
+    private String idLabels = "5874e18eced82109ffad35ce";
 
     public String getIdLabels() {
         return idLabels;
@@ -40,34 +40,34 @@ public class ChamadoCard {
         this.idLabels = idLabels;
     }
 
-    public List<FilaChamado> BuscaChamados(int id_fila, String listDestino) {
+    private List<FilaChamado> BuscaChamados(int id_fila, String listDestino) {
         FilaChamadoFacade facade1 = new FilaChamadoFacade();
-        List<FilaChamado> chamadoFila = new ArrayList<FilaChamado>();
+        List<FilaChamado> chamadoFila;
         chamadoFila = facade1.findTicketsByFila(id_fila, listDestino);
         return chamadoFila;
     }
 
-    public void AtualizaChamado(FilaChamado filaChamado) {
+    private void AtualizaChamado(FilaChamado filaChamado) {
         FilaChamadoFacade filaChamadoFacade = new FilaChamadoFacade();
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
         LocalDateTime dateTime = LocalDateTime.now();
         String formattedDateTime = dateTime.format(formatter);
 
-        filaChamado.setObservacao("Enviado Trello " + formattedDateTime.toString());
+        filaChamado.setObservacao("Enviado Trello " + formattedDateTime);
         filaChamadoFacade.updateFilaChamado(filaChamado);
     }
 
-    public List<Chamado> ValidaNotificacaoTrello(int idFila, String listName) {
+    private List<Chamado> ValidaNotificacaoTrello(int idFila, String listName) {
         List<FilaChamado> chamadosFila = BuscaChamados(idFila, listName); // 4140 Matheus Maciel
-        List<Chamado> chamados = new ArrayList<Chamado>();
+        List<Chamado> chamados = new ArrayList<>();
 
         //Preenche o lista de chamados com todos os chamados que estão na fila passada por parametro
         for (FilaChamado filaChamado : chamadosFila) {
             numeroChamado = filaChamado.getChamado().getNumeroChamado();
             observacaoChamado = filaChamado.getObservacao();
             if (observacaoChamado != null) {
-                if (observacaoChamado.equals("produtos")) {
+                if (observacaoChamado.equals("produtos") || observacaoChamado.equals("pessoal")) {
                     chamados.add(filaChamado.getChamado());
                     AtualizaChamado(filaChamado);
                 }
@@ -93,12 +93,14 @@ public class ChamadoCard {
         Card card = new Card();
         now = now.plusDays(1).minusHours(1);
 
-        List<String> cardMember = new ArrayList<String>();
+        List<String> cardMember = new ArrayList<>();
         cardMember.add(analista.getId());
-        cardMember.add(backupCoordenador.getId());
-        cardMember.add(backupEspecialista.getId());
-        cardMember.add(coordenador.getId());
-        cardMember.add(especialista.getId());
+        if (listDestino.equals("produtos")) {
+            cardMember.add(backupCoordenador.getId());
+            cardMember.add(backupEspecialista.getId());
+            cardMember.add(coordenador.getId());
+            cardMember.add(especialista.getId());
+        }
 
         card.setIdMembers(cardMember);
         member = retornaMembros(cardMember);
@@ -121,7 +123,7 @@ public class ChamadoCard {
             System.out.println(cardName + " - " + trelloUser.getUserName());
 
             // Aqui são passados os parametros que criam o card no Trello --Notar que cada um vai em um put --
-            Map<String, String> map = new HashMap<String, String>();
+            Map<String, String> map = new HashMap<>();
             map.put("desc", cardDescription);
             map.put("idMembers", member);
             //map.put("idMembers", cardMember.get(1).toString());
@@ -134,15 +136,15 @@ public class ChamadoCard {
 
             card = trello.createCard(trelloUser.getListID(), cardName, map);
         }
-        return;
+
     }
 
-    public String retornaMembros(List<String> cardMembros) {
+    private String retornaMembros(List<String> cardMembros) {
         String idMember;
-        String members = "";
+        StringBuilder members = new StringBuilder();
         for (String element : cardMembros) {
             idMember = element;
-            members += "," + idMember;
+            members.append(",").append(idMember);
         }
         return members.substring(1);
     }
