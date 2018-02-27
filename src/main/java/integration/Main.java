@@ -27,7 +27,7 @@ public class Main {
                     if (trelloUser.getUserToken() != null) {
                         System.out.println("Selects do usuario: " + trelloUser.getUserName());
                         ChamadoCard cards = new ChamadoCard();
-                        cards.InsereChamado(trelloUser);
+                        cards.InsereChamado(trelloUser, "produtos");
                     }
                 }
             }

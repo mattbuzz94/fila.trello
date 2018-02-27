@@ -76,9 +76,9 @@ public class ChamadoCard {
         return chamados;
     }
 
-    public void InsereChamado(TrelloUser trelloUser) {
+    public void InsereChamado(TrelloUser trelloUser, String listDestino) {
         Trello trello = new TrelloImpl(devKey, trelloUser.getUserToken());
-        List<Chamado> chamados = ValidaNotificacaoTrello(trelloUser.getFilaID(), "produtos");
+        List<Chamado> chamados = ValidaNotificacaoTrello(trelloUser.getFilaID(), listDestino);
         String cliente;
         String numeroChamado;
         String tituloChamado;
